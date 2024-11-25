@@ -1,5 +1,7 @@
 # Custom
 standalone/
+data/current/
+data/saves/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
