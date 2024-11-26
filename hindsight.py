@@ -1,5 +1,5 @@
-import tkinter
-import tkinter.messagebox
+import tkinter as tk
+from tkinter import ttk
 import customtkinter
 import os
 import shutil
@@ -14,8 +14,8 @@ from pprint import pprint
 
 
 
-customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
+#customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
+#customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 
 
@@ -29,7 +29,6 @@ app_title = "FTL - Hindsight"
 default_spoiler_level = 0
 spoiler_level = 0
 default_score_filter = 5000
-
 
 # --- LABELS ---
 lbl_placeholder = "This is a placeholder"
@@ -59,54 +58,54 @@ lbl_filter_below = "Below"
 
 # ---- TopBarFrame ----
 
-class TopBarFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class TopBarFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0,1,2,3), weight=1)
+        self.columnconfigure((0,1,2,3), weight=1)
 
 
-        self.topbar_logo_label = customtkinter.CTkLabel(self, text=app_title, font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.topbar_logo_label = ttk.Label(self, text=app_title)
         self.topbar_logo_label.grid(row=0, column=0, padx=0, pady=0)
-        self.topbar_logo_label.grid_rowconfigure(0, weight=1)
+        self.topbar_logo_label.rowconfigure(0, weight=1)
 
         
         # Frame to group profile label, drop-down and button
-        self.topbar_profile_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.topbar_profile_frame = ttk.Frame(self)
         self.topbar_profile_frame.grid(row=0, column=1, sticky="nsew")
-        self.topbar_profile_frame.grid_rowconfigure(0, weight=1)
+        self.topbar_profile_frame.rowconfigure(0, weight=1)
 
-        self.topbar_profile_label = customtkinter.CTkLabel(self.topbar_profile_frame, text=lbl_profile, anchor="e")
+        self.topbar_profile_label = ttk.Label(self.topbar_profile_frame, text=lbl_profile, anchor="e")
         self.topbar_profile_label.grid(row=0, column=0, padx=(5,2), pady=2)
-        self.topbar_profile_optionsmenu = customtkinter.CTkOptionMenu(self.topbar_profile_frame, values=["Pause", "NoPause", "Easy"], command=self.change_profile_event)
+        self.topbar_profile_optionsmenu = ttk.Combobox(self.topbar_profile_frame, values=["Pause", "NoPause", "Easy"])
         self.topbar_profile_optionsmenu.grid(row=0, column=1, padx=(0,5), pady=2)
 
-        self.topbar_profile_button = customtkinter.CTkButton(self.topbar_profile_frame, command=self.topbar_manage_profiles_event, text=lbl_manage_profiles)
+        self.topbar_profile_button = ttk.Button(self.topbar_profile_frame, command=self.topbar_manage_profiles_event, text=lbl_manage_profiles)
         self.topbar_profile_button.grid(row=0, column=2, padx=0, pady=2)
 
 
         # Spoiler level
-        self.topbar_spoiler_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.topbar_spoiler_frame = ttk.Frame(self)
         self.topbar_spoiler_frame.grid(row=0, column=2, sticky="nsew")
-        self.topbar_spoiler_frame.grid_rowconfigure(0, weight=1)
+        self.topbar_spoiler_frame.rowconfigure(0, weight=1)
 
-        self.topbar_spoiler_label = customtkinter.CTkLabel(self.topbar_spoiler_frame, text=lbl_spoiler, anchor="e")
+        self.topbar_spoiler_label = ttk.Label(self.topbar_spoiler_frame, text=lbl_spoiler, anchor="e")
         self.topbar_spoiler_label.grid(row=0, column=0, padx=(5,2), pady=0)
         
-        self.topbar_spoiler_level = customtkinter.CTkSlider(self.topbar_spoiler_frame, from_=0, to=2, number_of_steps=2, command=self.topbar_spoiler_event)
+        self.topbar_spoiler_level = ttk.Scale(self.topbar_spoiler_frame, orient=tk.HORIZONTAL, variable=spoiler_level, command=self.topbar_spoiler_event, from_=0.0, to=2.0, length=2)
         self.topbar_spoiler_level.set(default_spoiler_level)
         self.topbar_spoiler_level.grid(row=0, column=1, padx=0, pady=0, sticky="ew")
 
-        self.topbar_spoiler_value = customtkinter.CTkLabel(self.topbar_spoiler_frame, text=lbl_spoiler_0, anchor="w")
+        self.topbar_spoiler_value = ttk.Label(self.topbar_spoiler_frame, text=lbl_spoiler_0, anchor="w")
         self.topbar_spoiler_value.grid(row=0, column=2, padx=(0,5), pady=(0, 0))
 
 
         # Settings Button
-        self.topbar_settings_button = customtkinter.CTkButton(self, command=self.topbar_manage_profiles_event, text=lbl_settings_button)
+        self.topbar_settings_button = ttk.Button(self, command=self.topbar_manage_profiles_event, text=lbl_settings_button)
         self.topbar_settings_button.grid(row=0, column=3, padx=0, pady=2)
 
         # About Button
-        self.topbar_settings_button = customtkinter.CTkButton(self, command=self.topbar_manage_profiles_event, text=lbl_about_button)
+        self.topbar_settings_button = ttk.Button(self, command=self.topbar_manage_profiles_event, text=lbl_about_button)
         self.topbar_settings_button.grid(row=0, column=4, padx=(0,5), pady=2)
 
 
@@ -130,14 +129,14 @@ class TopBarFrame(customtkinter.CTkFrame):
     def topbar_spoiler_event(self, level: str):
         spoiler_level = level
         if level == 2:
-            self.topbar_spoiler_value.configure(text=lbl_spoiler_2)
-            self.topbar_spoiler_level.configure(progress_color=("red", "darkred"))
+            self.topbar_spoiler_value.set(text=lbl_spoiler_2)
+            self.topbar_spoiler_level.set(background=("darkred"))
         elif level == 1:
-            self.topbar_spoiler_value.configure(text=lbl_spoiler_1)
-            self.topbar_spoiler_level.configure(progress_color=("yellow", "gold"))
+            self.topbar_spoiler_value.set(text=lbl_spoiler_1)
+            self.topbar_spoiler_level.configure(background=("gold"))
         else:
-            self.topbar_spoiler_value.configure(text=lbl_spoiler_0)
-            self.topbar_spoiler_level.configure(progress_color=("gray40", "#AAB0B5"))
+            self.topbar_spoiler_value.set(text=lbl_spoiler_0)
+            self.topbar_spoiler_level.configure(background=("#AAB0B5"))
 
 
 
@@ -145,14 +144,14 @@ class TopBarFrame(customtkinter.CTkFrame):
 
 # ---- GlobalStatisticsTabFrame ----
 
-class GlobalStatisticsTabFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class GlobalStatisticsTabFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0,1,2,3), weight=1)
-        self.grid_rowconfigure((0,1,2,3), weight=1)
+        self.columnconfigure((0,1,2,3), weight=1)
+        self.rowconfigure((0,1,2,3), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(master, text=lbl_placeholder)
+        self.placeholder = ttk.Label(parent, text=lbl_placeholder)
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
 
@@ -165,172 +164,176 @@ class GlobalStatisticsTabFrame(customtkinter.CTkFrame):
 # ---- SUB-FRAMES ----
 
 # ---- Run Selector (Filters and List frames) Frame
-class SingleRunReviewTabFrameRunSelectorFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
-
-        self.grid_columnconfigure((0,1,2,3), weight=1)
-        self.grid_rowconfigure((0,1,2), weight=0)
-        self.grid_rowconfigure((3), weight=1)
+class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
 
-        self.filter_shiptype_label = customtkinter.CTkLabel(self, text=lbl_filter_shiptype, anchor="e")
+        score_filter = tk.IntVar()
+        score_filter.set(default_score_filter)
+
+        self.columnconfigure((0,1,2,3), weight=1)
+        self.rowconfigure((0,1,2), weight=0)
+        self.rowconfigure((3), weight=1)
+
+
+        self.filter_shiptype_label = ttk.Label(self, text=lbl_filter_shiptype, anchor="e")
         self.filter_shiptype_label.grid(row=0, column=0, padx=(5,2), pady=2)
         #Todo: replace ship types by a dynamic system based on a dictionnary of available ship types.
-        self.filter_shiptype = customtkinter.CTkOptionMenu(self, values=[lbl_filter_empty, "Federation", "Mantis", "Lanius"], command=self.change_filter_event)
+        self.filter_shiptype = ttk.Combobox(self, values=[lbl_filter_empty, "Federation", "Mantis", "Lanius"])
         self.filter_shiptype.grid(row=0, column=1, padx=(0,5), pady=2)
 
-        self.filter_shipvar_label = customtkinter.CTkLabel(self, text=lbl_filter_shipvar, anchor="e")
+        self.filter_shipvar_label = ttk.Label(self, text=lbl_filter_shipvar, anchor="e")
         self.filter_shipvar_label.grid(row=0, column=2, padx=(5,2), pady=2)
         #Todo: replace A, B, C by a dynamic system based on a dictionnary of available ship types.
-        self.filter_shipvar = customtkinter.CTkOptionMenu(self, values=[lbl_filter_empty, "A", "B", "C"], command=self.change_filter_event)
+        self.filter_shipvar = ttk.Combobox(self, values=[lbl_filter_empty, "A", "B", "C"])
         self.filter_shipvar.grid(row=0, column=3, padx=(0,5), pady=2)
 
-        self.filter_victory_label = customtkinter.CTkLabel(self, text=lbl_filter_victory, anchor="e")
+        self.filter_victory_label = ttk.Label(self, text=lbl_filter_victory, anchor="e")
         self.filter_victory_label.grid(row=1, column=0, padx=(5,2), pady=2)
-        self.filter_victory = customtkinter.CTkOptionMenu(self, values=[lbl_filter_empty, lbl_filter_victory_val, lbl_filter_defeat_val], command=self.change_filter_event)
+        self.filter_victory = ttk.Combobox(self, values=[lbl_filter_empty, lbl_filter_victory_val, lbl_filter_defeat_val])
         self.filter_victory.grid(row=1, column=1, padx=(0,5), pady=2)
 
 
-        self.filter_score_label = customtkinter.CTkLabel(self, text=lbl_filter_score, anchor="e")
+        self.filter_score_label = ttk.Label(self, text=lbl_filter_score, anchor="e")
         self.filter_score_label.grid(row=2, column=0, padx=(5,2), pady=2)
-        self.filter_type_score = customtkinter.CTkOptionMenu(self, values=[lbl_filter_empty,lbl_filter_above,lbl_filter_below], command=self.change_filter_event)
+        self.filter_type_score = ttk.Combobox(self, values=[lbl_filter_empty,lbl_filter_above,lbl_filter_below])
         self.filter_type_score.grid(row=2, column=1, padx=(0,5), pady=2)
-        self.filter_score = customtkinter.CTkSlider(self, from_=0, to=10000, number_of_steps=10000, command=self.filter_score_change)
+        self.filter_score = ttk.Scale(self, from_=0, to=10000, length=10000, orient=tk.HORIZONTAL, command=self.filter_score_change)
         self.filter_score.set(default_score_filter)
         self.filter_score.grid(row=2, column=2, padx=0, pady=0, sticky="ew")
-        self.filter_score_value_label = customtkinter.CTkLabel(self, text=default_score_filter, anchor="w")
+        self.filter_score_value_label = ttk.Label(self, text=score_filter, anchor="w")
         self.filter_score_value_label.grid(row=2, column=3, padx=(0,5), pady=(0, 0))
 
-        # self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameRunSelectorFrame")
+        # self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameRunSelectorFrame")
         # self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
-        # self.placeholder.grid_rowconfigure(0, weight=1)
+        # self.placeholder.rowconfigure(0, weight=1)
 
         # Create the systems list frame
         self.run_selector_list_frame = SingleRunReviewTabFrameRunSelectorListFrame(self)
         self.run_selector_list_frame.grid(row=3, column=0, sticky="nsew", columnspan=4)
-        self.run_selector_list_frame.grid_rowconfigure(0, weight=1)
+        self.run_selector_list_frame.rowconfigure(0, weight=1)
 
     def change_filter_event(self, filter_value: str):
         print("filter changed: " + filter_value)
 
     def filter_score_change(self, filter_score: str):
-        self.filter_score_value_label.configure(text=filter_score)
+        self.filter_score_value_label.set(text=filter_score)
 
 
 
 
 # ---- Run Selector List (List frame) Frame
-class SingleRunReviewTabFrameRunSelectorListFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrameRunSelectorListFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0), weight=1)
-        self.grid_rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=1)
+        self.rowconfigure((0), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameRunSelectorListFrame")
+        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameRunSelectorListFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
 # ---- Run Selector List (List frame) Frame
-class SingleRunReviewTabFrameRunSelectorListFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrameRunSelectorListFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0), weight=1)
-        self.grid_rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=1)
+        self.rowconfigure((0), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameRunSelectorListFrame")
+        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameRunSelectorListFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
 
 # ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameSectorListFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrameSectorListFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0), weight=1)
-        self.grid_rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=1)
+        self.rowconfigure((0), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameSectorListFrame", fg_color="red")
+        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameSectorListFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0, sticky="nsew")
 
 
 # ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameJumpListFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrameJumpListFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0), weight=1)
-        self.grid_rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=1)
+        self.rowconfigure((0), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameJumpListFrame")
+        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameJumpListFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
 
 
 # ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameOwnShipFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrameOwnShipFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0), weight=1)
-        self.grid_rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=1)
+        self.rowconfigure((0), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameOwnShipFrame")
+        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameOwnShipFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
 
 
 
 # ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameEnemyShipFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrameEnemyShipFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((0), weight=1)
-        self.grid_rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=1)
+        self.rowconfigure((0), weight=1)
 
-        self.placeholder = customtkinter.CTkLabel(self, text="SingleRunReviewTabFrameEnemyShipFrame")
+        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameEnemyShipFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
 
 
 # ---- MAIN-FRAME ----
 
-class SingleRunReviewTabFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class SingleRunReviewTabFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        master.grid_columnconfigure((0,1,2,3), weight=1)
-        master.grid_rowconfigure((0,1), weight=1)
+        parent.columnconfigure((0,1,2,3), weight=1)
+        parent.rowconfigure((0,1), weight=1)
 
-        self.grid_columnconfigure((0,1,2,3), weight=1)
-        self.grid_rowconfigure((0,1), weight=1)
+        self.columnconfigure((0,1,2,3), weight=1)
+        self.rowconfigure((0,1), weight=1)
 
         # Frame to filter runs and select one from a list
-        self.runfilter_frame = SingleRunReviewTabFrameRunSelectorFrame(master)
-        #self.runfilter_frame = customtkinter.CTkLabel(master, text="Run Filter")
+        self.runfilter_frame = SingleRunReviewTabFrameRunSelectorFrame(parent)
+        #self.runfilter_frame = ttk.Label(parent, text="Run Filter")
         self.runfilter_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
 
         
          # Frame to see sector list (with short summary) and select one
-        self.sectorlist_frame = SingleRunReviewTabFrameSectorListFrame(master)
-        #self.sectorlist_frame = customtkinter.CTkLabel(master, text="Sector List")
+        self.sectorlist_frame = SingleRunReviewTabFrameSectorListFrame(parent)
+        #self.sectorlist_frame = ttk.Label(parent, text="Sector List")
         self.sectorlist_frame.grid(row=0, column=1, columnspan=3, sticky="nsew")
 
          # Frame to see jump list (with short summary) and select one
-        self.jumplist_frame = SingleRunReviewTabFrameJumpListFrame(master)
-        #self.jumplist_frame = customtkinter.CTkLabel(master, text="Jump List")
+        self.jumplist_frame = SingleRunReviewTabFrameJumpListFrame(parent)
+        #self.jumplist_frame = ttk.Label(parent, text="Jump List")
         self.jumplist_frame.grid(row=1, column=1, sticky="nsew")
 
          # Frame to see jump list (with short summary) and select one
-        self.ownship_frame = SingleRunReviewTabFrameOwnShipFrame(master)
-        #self.ownship_frame = customtkinter.CTkLabel(master, text="Own Ship Info")
+        self.ownship_frame = SingleRunReviewTabFrameOwnShipFrame(parent)
+        #self.ownship_frame = ttk.Label(parent, text="Own Ship Info")
         self.ownship_frame.grid(row=1, column=2, sticky="nsew")
 
          # Frame to see jump list (with short summary) and select one
-        self.enemyship_frame = SingleRunReviewTabFrameEnemyShipFrame(master)
-        #self.enemyship_frame = customtkinter.CTkLabel(master, text="Enemy Ship Info")
+        self.enemyship_frame = SingleRunReviewTabFrameEnemyShipFrame(parent)
+        #self.enemyship_frame = ttk.Label(parent, text="Enemy Ship Info")
         self.enemyship_frame.grid(row=1, column=3, sticky="nsew")
 
 
@@ -358,12 +361,12 @@ class SingleRunReviewTabFrame(customtkinter.CTkFrame):
 
 # ---- CurrentSaveTabFrame ----
 
-class CurrentSaveTabFrame(customtkinter.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
+class CurrentSaveTabFrame(ttk.Frame):
+    def __init__(self, parent):
+        super().__init__(parent)
 
-        self.grid_columnconfigure((1,2,3,4), weight=1)
-        self.placeholder = customtkinter.CTkLabel(master, text=lbl_placeholder)
+        self.columnconfigure((1,2,3,4), weight=1)
+        self.placeholder = ttk.Label(parent, text=lbl_placeholder)
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
         
@@ -395,7 +398,7 @@ class CurrentSaveTabFrame(customtkinter.CTkFrame):
 
 
 
-class App(customtkinter.CTk):
+class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
@@ -430,20 +433,24 @@ class App(customtkinter.CTk):
 
 
 
+
         # Configure window
         self.title(app_title)
         self.geometry(f"{1280}x{720}")
+        self.tk.call('source', '/home/jonas/Applications/FTL/tkBreeze/breeze-dark/breeze-dark.tcl')
+        s = ttk.Style()
+        s.theme_use('breeze-dark')
 
         # Configure grid layout (4x4)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=0)
+        self.rowconfigure(1, weight=1)
 
 
         # Create the top menu bar
         self.topbar_frame = TopBarFrame(self)
         self.topbar_frame.grid(row=0, column=0, sticky="new")
-        self.topbar_frame.grid_rowconfigure(0, weight=0)
+        self.topbar_frame.rowconfigure(0, weight=0)
 
 
 
@@ -451,18 +458,18 @@ class App(customtkinter.CTk):
         # create tabview
         self.tabview = customtkinter.CTkTabview(self)
         self.tabview.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
-        self.tabview.grid_columnconfigure(0, weight=1)
+        self.tabview.columnconfigure(0, weight=1)
         self.tabview.add(lbl_tab_statistics)
         self.tabview.add(lbl_tab_run_review)
         self.tabview.add(lbl_tab_current_save)
 
-        self.tabview.tab(lbl_tab_statistics).grid_columnconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_run_review).grid_columnconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_current_save).grid_columnconfigure(0, weight=1)
+        self.tabview.tab(lbl_tab_statistics).columnconfigure(0, weight=1)
+        self.tabview.tab(lbl_tab_run_review).columnconfigure(0, weight=1)
+        self.tabview.tab(lbl_tab_current_save).columnconfigure(0, weight=1)
 
-        self.tabview.tab(lbl_tab_statistics).grid_rowconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_run_review).grid_rowconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_current_save).grid_rowconfigure(0, weight=1)
+        self.tabview.tab(lbl_tab_statistics).rowconfigure(0, weight=1)
+        self.tabview.tab(lbl_tab_run_review).rowconfigure(0, weight=1)
+        self.tabview.tab(lbl_tab_current_save).rowconfigure(0, weight=1)
 
         # Fill the tabs with the respective frames
         self.stats_tab_frame = GlobalStatisticsTabFrame(self.tabview.tab(lbl_tab_statistics))
