@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-import customtkinter
 import os
 import shutil
 from datetime import datetime
@@ -52,6 +51,7 @@ lbl_filter_defeat_val = "Defeat"
 lbl_filter_score = "Score"
 lbl_filter_above = "Above"
 lbl_filter_below = "Below"
+lbl_filter_submit = "Submit"
 
 
 
@@ -62,8 +62,15 @@ class TopBarFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.columnconfigure((0,1,2,3), weight=1)
+        self.style = ttk.Style()
+        self.style.configure("spoiler_slider.Horizontal.TScale", background="#31363b")
 
+        self.spoiler_level_var = tk.IntVar()
+        self.spoiler_level_var.set(spoiler_level)
+        self.topbar_spoiler_value_label = tk.StringVar()
+        self.topbar_spoiler_value_label.set(lbl_spoiler_0)
+
+        self.columnconfigure((0,1,2,3), weight=1)
 
         self.topbar_logo_label = ttk.Label(self, text=app_title)
         self.topbar_logo_label.grid(row=0, column=0, padx=0, pady=0)
@@ -92,11 +99,11 @@ class TopBarFrame(ttk.Frame):
         self.topbar_spoiler_label = ttk.Label(self.topbar_spoiler_frame, text=lbl_spoiler, anchor="e")
         self.topbar_spoiler_label.grid(row=0, column=0, padx=(5,2), pady=0)
         
-        self.topbar_spoiler_level = ttk.Scale(self.topbar_spoiler_frame, orient=tk.HORIZONTAL, variable=spoiler_level, command=self.topbar_spoiler_event, from_=0.0, to=2.0, length=2)
+        self.topbar_spoiler_level = ttk.Scale(self.topbar_spoiler_frame, orient=tk.HORIZONTAL, variable=self.spoiler_level_var, style="spoiler_slider.Horizontal.TScale", command=self.topbar_spoiler_event, from_=0, to=2, length=150)
         self.topbar_spoiler_level.set(default_spoiler_level)
         self.topbar_spoiler_level.grid(row=0, column=1, padx=0, pady=0, sticky="ew")
 
-        self.topbar_spoiler_value = ttk.Label(self.topbar_spoiler_frame, text=lbl_spoiler_0, anchor="w")
+        self.topbar_spoiler_value = ttk.Label(self.topbar_spoiler_frame, textvariable=self.topbar_spoiler_value_label, anchor="w")
         self.topbar_spoiler_value.grid(row=0, column=2, padx=(0,5), pady=(0, 0))
 
 
@@ -126,17 +133,23 @@ class TopBarFrame(ttk.Frame):
     def change_profile_event(self, profile: str):
         print("topbar_manage_profiles_event selected: " + profile)
 
-    def topbar_spoiler_event(self, level: str):
-        spoiler_level = level
-        if level == 2:
-            self.topbar_spoiler_value.set(text=lbl_spoiler_2)
-            self.topbar_spoiler_level.set(background=("darkred"))
-        elif level == 1:
-            self.topbar_spoiler_value.set(text=lbl_spoiler_1)
-            self.topbar_spoiler_level.configure(background=("gold"))
+    def topbar_spoiler_event(self, level_str):
+        self.level = int(float(level_str))
+        print(level_str)
+        print(":")
+        print(self.level)
+        spoiler_level = self.level
+        self.spoiler_level_var.set(self.level)
+
+        if self.level == 2:
+            self.topbar_spoiler_value_label.set(lbl_spoiler_2)
+            self.style.configure("spoiler_slider.Horizontal.TScale", background="red")
+        elif self.level == 1:
+            self.topbar_spoiler_value_label.set(lbl_spoiler_1)
+            self.style.configure("spoiler_slider.Horizontal.TScale", background="gold")
         else:
-            self.topbar_spoiler_value.set(text=lbl_spoiler_0)
-            self.topbar_spoiler_level.configure(background=("#AAB0B5"))
+            self.topbar_spoiler_value_label.set(lbl_spoiler_0)
+            self.style.configure("spoiler_slider.Horizontal.TScale", background="#31363b")
 
 
 
@@ -169,8 +182,9 @@ class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
         super().__init__(parent)
 
 
-        score_filter = tk.IntVar()
-        score_filter.set(default_score_filter)
+        self.score_filter = tk.StringVar()
+        self.score_filter.set(default_score_filter)
+
 
         self.columnconfigure((0,1,2,3), weight=1)
         self.rowconfigure((0,1,2), weight=0)
@@ -199,10 +213,10 @@ class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
         self.filter_score_label.grid(row=2, column=0, padx=(5,2), pady=2)
         self.filter_type_score = ttk.Combobox(self, values=[lbl_filter_empty,lbl_filter_above,lbl_filter_below])
         self.filter_type_score.grid(row=2, column=1, padx=(0,5), pady=2)
-        self.filter_score = ttk.Scale(self, from_=0, to=10000, length=10000, orient=tk.HORIZONTAL, command=self.filter_score_change)
+        self.filter_score = ttk.Scale(self, from_=0, to=10000, length=150, orient=tk.HORIZONTAL, command=self.filter_score_change)
         self.filter_score.set(default_score_filter)
         self.filter_score.grid(row=2, column=2, padx=0, pady=0, sticky="ew")
-        self.filter_score_value_label = ttk.Label(self, text=score_filter, anchor="w")
+        self.filter_score_value_label = ttk.Label(self, textvariable=self.score_filter, anchor="w")
         self.filter_score_value_label.grid(row=2, column=3, padx=(0,5), pady=(0, 0))
 
         # self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameRunSelectorFrame")
@@ -217,8 +231,8 @@ class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
     def change_filter_event(self, filter_value: str):
         print("filter changed: " + filter_value)
 
-    def filter_score_change(self, filter_score: str):
-        self.filter_score_value_label.set(text=filter_score)
+    def filter_score_change(self, val: str):
+        self.score_filter.set(int(float(val)))
 
 
 
@@ -452,29 +466,22 @@ class App(tk.Tk):
         self.topbar_frame.grid(row=0, column=0, sticky="new")
         self.topbar_frame.rowconfigure(0, weight=0)
 
-
-
-
-        # create tabview
-        self.tabview = customtkinter.CTkTabview(self)
+        self.tabview = ttk.Notebook(self)
         self.tabview.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
         self.tabview.columnconfigure(0, weight=1)
-        self.tabview.add(lbl_tab_statistics)
-        self.tabview.add(lbl_tab_run_review)
-        self.tabview.add(lbl_tab_current_save)
 
-        self.tabview.tab(lbl_tab_statistics).columnconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_run_review).columnconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_current_save).columnconfigure(0, weight=1)
+        self.stats_tab_frame_frame = ttk.Frame()
+        self.single_run_tab_frame_frame = ttk.Frame()
+        self.current_save_tab_frame_frame = ttk.Frame()
 
-        self.tabview.tab(lbl_tab_statistics).rowconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_run_review).rowconfigure(0, weight=1)
-        self.tabview.tab(lbl_tab_current_save).rowconfigure(0, weight=1)
+        self.tabview.add(self.stats_tab_frame_frame, text=lbl_tab_statistics)
+        self.tabview.add(self.single_run_tab_frame_frame, text=lbl_tab_run_review)
+        self.tabview.add(self.current_save_tab_frame_frame, text=lbl_tab_current_save)
 
         # Fill the tabs with the respective frames
-        self.stats_tab_frame = GlobalStatisticsTabFrame(self.tabview.tab(lbl_tab_statistics))
-        self.single_run_tab_frame = SingleRunReviewTabFrame(self.tabview.tab(lbl_tab_run_review))
-        self.current_save_tab_frame = CurrentSaveTabFrame(self.tabview.tab(lbl_tab_current_save))
+        self.stats_tab_frame = GlobalStatisticsTabFrame(self.stats_tab_frame_frame)
+        self.single_run_tab_frame = SingleRunReviewTabFrame(self.single_run_tab_frame_frame)
+        self.current_save_tab_frame = CurrentSaveTabFrame(self.current_save_tab_frame_frame)
 
 
 
