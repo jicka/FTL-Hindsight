@@ -1,5 +1,7 @@
 import tkinter as tk
+from tkinter import messagebox
 from tkinter import ttk
+import sv_ttk
 import os
 import shutil
 from datetime import datetime
@@ -10,7 +12,8 @@ from source import run as r
 import copy
 import numpy as np
 from pprint import pprint
-
+import saveparsing
+import multiprocessing as mp
 
 
 #customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -23,6 +26,9 @@ global lbl_manage_profiles
 global lbl_profile
 global spoiler_level
 global default_score_filter
+
+global parsing_active
+parsing_active = True
 
 app_title = "FTL - Hindsight"
 default_spoiler_level = 0
@@ -52,6 +58,12 @@ lbl_filter_score = "Score"
 lbl_filter_above = "Above"
 lbl_filter_below = "Below"
 lbl_filter_submit = "Submit"
+lbl_header_run_selector = "Run List"
+lbl_header_sector_selector = "Sector Overview"
+lbl_header_sector_info = "Sector "
+lbl_header_jump_selector = "Jump Overview"
+lbl_header_ownship_info = "Own Ship"
+lbl_header_enemyship_info = "Enemy Ship"
 
 
 
@@ -65,7 +77,7 @@ class TopBarFrame(ttk.Frame):
         self.style = ttk.Style()
         self.style.configure("spoiler_slider.Horizontal.TScale", background="#31363b")
 
-        self.spoiler_level_var = tk.IntVar()
+        self.spoiler_level_var = tk.StringVar()
         self.spoiler_level_var.set(spoiler_level)
         self.topbar_spoiler_value_label = tk.StringVar()
         self.topbar_spoiler_value_label.set(lbl_spoiler_0)
@@ -103,7 +115,7 @@ class TopBarFrame(ttk.Frame):
         self.topbar_spoiler_level.set(default_spoiler_level)
         self.topbar_spoiler_level.grid(row=0, column=1, padx=0, pady=0, sticky="ew")
 
-        self.topbar_spoiler_value = ttk.Label(self.topbar_spoiler_frame, textvariable=self.topbar_spoiler_value_label, anchor="w")
+        self.topbar_spoiler_value = ttk.Label(self.topbar_spoiler_frame, textvariable=self.topbar_spoiler_value_label, anchor="w", width=15)
         self.topbar_spoiler_value.grid(row=0, column=2, padx=(0,5), pady=(0, 0))
 
 
@@ -135,11 +147,9 @@ class TopBarFrame(ttk.Frame):
 
     def topbar_spoiler_event(self, level_str):
         self.level = int(float(level_str))
-        print(level_str)
-        print(":")
-        print(self.level)
+
         spoiler_level = self.level
-        self.spoiler_level_var.set(self.level)
+        #self.spoiler_level_var.set(self.level)
 
         if self.level == 2:
             self.topbar_spoiler_value_label.set(lbl_spoiler_2)
@@ -187,26 +197,26 @@ class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
 
 
         self.columnconfigure((0,1,2,3), weight=1)
-        self.rowconfigure((0,1,2), weight=0)
-        self.rowconfigure((3), weight=1)
+        self.rowconfigure((0,1,2,3), weight=0)
+        self.rowconfigure((4), weight=1)
 
 
         self.filter_shiptype_label = ttk.Label(self, text=lbl_filter_shiptype, anchor="e")
         self.filter_shiptype_label.grid(row=0, column=0, padx=(5,2), pady=2)
         #Todo: replace ship types by a dynamic system based on a dictionnary of available ship types.
         self.filter_shiptype = ttk.Combobox(self, values=[lbl_filter_empty, "Federation", "Mantis", "Lanius"])
-        self.filter_shiptype.grid(row=0, column=1, padx=(0,5), pady=2)
+        self.filter_shiptype.grid(row=1, column=0, padx=(0,5), pady=2)
 
         self.filter_shipvar_label = ttk.Label(self, text=lbl_filter_shipvar, anchor="e")
-        self.filter_shipvar_label.grid(row=0, column=2, padx=(5,2), pady=2)
+        self.filter_shipvar_label.grid(row=0, column=1, padx=(5,2), pady=2)
         #Todo: replace A, B, C by a dynamic system based on a dictionnary of available ship types.
         self.filter_shipvar = ttk.Combobox(self, values=[lbl_filter_empty, "A", "B", "C"])
-        self.filter_shipvar.grid(row=0, column=3, padx=(0,5), pady=2)
+        self.filter_shipvar.grid(row=1, column=1, padx=(0,5), pady=2)
 
         self.filter_victory_label = ttk.Label(self, text=lbl_filter_victory, anchor="e")
-        self.filter_victory_label.grid(row=1, column=0, padx=(5,2), pady=2)
+        self.filter_victory_label.grid(row=0, column=2, padx=(5,2), pady=2)
         self.filter_victory = ttk.Combobox(self, values=[lbl_filter_empty, lbl_filter_victory_val, lbl_filter_defeat_val])
-        self.filter_victory.grid(row=1, column=1, padx=(0,5), pady=2)
+        self.filter_victory.grid(row=1, column=2, padx=(0,5), pady=2)
 
 
         self.filter_score_label = ttk.Label(self, text=lbl_filter_score, anchor="e")
@@ -225,7 +235,7 @@ class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
 
         # Create the systems list frame
         self.run_selector_list_frame = SingleRunReviewTabFrameRunSelectorListFrame(self)
-        self.run_selector_list_frame.grid(row=3, column=0, sticky="nsew", columnspan=4)
+        self.run_selector_list_frame.grid(row=4, column=0, sticky="nsew", columnspan=4)
         self.run_selector_list_frame.rowconfigure(0, weight=1)
 
     def change_filter_event(self, filter_value: str):
@@ -238,60 +248,97 @@ class SingleRunReviewTabFrameRunSelectorFrame(ttk.Frame):
 
 
 # ---- Run Selector List (List frame) Frame
-class SingleRunReviewTabFrameRunSelectorListFrame(ttk.Frame):
+class SingleRunReviewTabFrameRunSelectorListFrame(ttk.Treeview):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.columnconfigure((0), weight=1)
-        self.rowconfigure((0), weight=1)
+        self["selectmode"] = "browse"
+        self['columns'] = ('date', 'ship', 'variant', 'scrap', 'hull', 'score')
+        self.heading('#0', text='ID')
+        self.heading('date', text='Date')
+        self.heading('ship', text='Ship')
+        self.heading('variant', text='Variant')
+        self.heading('scrap', text='Scrap')
+        self.heading('hull', text='Hull')
+        self.heading('score', text='Score')
+        id1 = self.insert('', 'end', text='0', values=('2024-12-09', 'Rock', 'A', '1280', '-45', '5400'))
 
-        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameRunSelectorListFrame")
-        self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
 
-# ---- Run Selector List (List frame) Frame
-class SingleRunReviewTabFrameRunSelectorListFrame(ttk.Frame):
-    def __init__(self, parent):
+
+
+
+# ---- Run Single Sector Summary Frame
+class SingleRunReviewTabFrameSectorListFrameSingleRunFrame(ttk.Labelframe):
+    def __init__(self, parent, frame_id):
         super().__init__(parent)
 
-        self.columnconfigure((0), weight=1)
-        self.rowconfigure((0), weight=1)
+        self.columnconfigure((0), weight=0)
+        self.rowconfigure((0,1,2,3), weight=0)
 
-        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameRunSelectorListFrame")
-        self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
+        self["text"] = lbl_header_sector_info
+        self["text"] += str((frame_id+1))
 
-
-# ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameSectorListFrame(ttk.Frame):
-    def __init__(self, parent):
-        super().__init__(parent)
-
-        self.columnconfigure((0), weight=1)
-        self.rowconfigure((0), weight=1)
-
-        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameSectorListFrame")
+        self.placeholder = ttk.Label(self, text="Zoltan Homeworlds")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0, sticky="nsew")
 
+        self.placeholder = ttk.Label(self, text="Scrap: 18 -> 128 (+110)")
+        self.placeholder.grid(row=1, column=0, padx=(20,20), pady=0, sticky="nsew")
+
+        self.placeholder = ttk.Label(self, text="Hull: 25 -> 20 (-5)")
+        self.placeholder.grid(row=2, column=0, padx=(20,20), pady=0, sticky="nsew")
+
+        self.placeholder = ttk.Label(self, text="Fuel: 16 -> 2 (-14)")
+        self.placeholder.grid(row=3, column=0, padx=(20,20), pady=0, sticky="nsew")
+
 
 # ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameJumpListFrame(ttk.Frame):
+class SingleRunReviewTabFrameSectorListFrame(ttk.Labelframe):
     def __init__(self, parent):
         super().__init__(parent)
 
         self.columnconfigure((0), weight=1)
         self.rowconfigure((0), weight=1)
 
-        self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameJumpListFrame")
-        self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
+        self["text"] = lbl_header_sector_selector
+
+        self.sector_frame = []
+
+        for w in range(0,4):
+            self.sector_frame.append(SingleRunReviewTabFrameSectorListFrameSingleRunFrame(self, w))
+            self.sector_frame[w].grid(row=0, column=w, padx=(20,20), pady=0, sticky="nsew")
+
+        #self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameSectorListFrame")
+        #self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0, sticky="nsew")
+
+
+# ---- Sector Jump List Frame
+class SingleRunReviewTabFrameJumpListFrame(ttk.Treeview):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self["selectmode"] = "browse"
+        self['columns'] = ('date', 'ship', 'variant', 'scrap', 'hull', 'score')
+        self.heading('#0', text='ID')
+        self.heading('date', text='Date')
+        self.heading('ship', text='Ship')
+        self.heading('variant', text='Variant')
+        self.heading('scrap', text='Scrap')
+        self.heading('hull', text='Hull')
+        self.heading('score', text='Score')
+        id1 = self.insert('', 'end', text='0', values=('2024-12-09', 'Rock', 'A', '1280', '-45', '5400'))
 
 
 
-# ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameOwnShipFrame(ttk.Frame):
+# ---- Own Ship Information
+class SingleRunReviewTabFrameOwnShipFrame(ttk.Labelframe):
     def __init__(self, parent):
         super().__init__(parent)
 
         self.columnconfigure((0), weight=1)
         self.rowconfigure((0), weight=1)
+
+        self["text"] = lbl_header_ownship_info
+
 
         self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameOwnShipFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
@@ -299,13 +346,16 @@ class SingleRunReviewTabFrameOwnShipFrame(ttk.Frame):
 
 
 
-# ---- Run Sector Overview Frame
-class SingleRunReviewTabFrameEnemyShipFrame(ttk.Frame):
+# ---- Enemy Ship Information
+class SingleRunReviewTabFrameEnemyShipFrame(ttk.Labelframe):
     def __init__(self, parent):
         super().__init__(parent)
 
         self.columnconfigure((0), weight=1)
         self.rowconfigure((0), weight=1)
+
+        self["text"] = lbl_header_enemyship_info
+
 
         self.placeholder = ttk.Label(self, text="SingleRunReviewTabFrameEnemyShipFrame")
         self.placeholder.grid(row=0, column=0, padx=(20,20), pady=0)
@@ -318,39 +368,66 @@ class SingleRunReviewTabFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
-        parent.columnconfigure((0,1,2,3), weight=1)
-        parent.rowconfigure((0,1), weight=1)
 
-        self.columnconfigure((0,1,2,3), weight=1)
+        self.style = ttk.Style()
+        self.style.configure("grey.TFrame", background="#2e2e2e")
+
+        parent.columnconfigure((0), weight=1)
+        parent.rowconfigure((0), weight=1)
+
+        self.columnconfigure((0), weight=1)
         self.rowconfigure((0,1), weight=1)
 
+        self.pane1 = ttk.Panedwindow(parent, orient=tk.HORIZONTAL)
+        self.pane1.grid(row=0, column=0, sticky="nsew")
+        self.pane1.columnconfigure(0, weight=1)
+
+        self.pane2 = ttk.Panedwindow(self.pane1, orient=tk.VERTICAL)
+        self.pane2.grid(row=0, column=2, sticky="nsew")
+        self.pane2.columnconfigure(0, weight=1)
+
+        self.pane3 = ttk.Panedwindow(self.pane2, orient=tk.HORIZONTAL)
+        self.pane3.grid(row=0, column=0, sticky="nsew")
+
         # Frame to filter runs and select one from a list
-        self.runfilter_frame = SingleRunReviewTabFrameRunSelectorFrame(parent)
-        #self.runfilter_frame = ttk.Label(parent, text="Run Filter")
-        self.runfilter_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
+        self.runfilter_frame = SingleRunReviewTabFrameRunSelectorFrame(self.pane1)
+        #self.runfilter_frame = ttk.Label(self.pane1, text="Run Filter")
+        self.runfilter_frame.grid(row=0, column=0, sticky="nsew")
+
+         # Frame to see jump list (with short summary) and select one
+        self.jumplist_frame = SingleRunReviewTabFrameJumpListFrame(self.pane1)
+        # self.jumplist_frame = ttk.Label(self.pane3, text="Jump List")
+        self.jumplist_frame.grid(row=0, column=1, sticky="nsew")
+        self.jumplist_frame.columnconfigure(1, weight=1)
 
         
          # Frame to see sector list (with short summary) and select one
-        self.sectorlist_frame = SingleRunReviewTabFrameSectorListFrame(parent)
-        #self.sectorlist_frame = ttk.Label(parent, text="Sector List")
-        self.sectorlist_frame.grid(row=0, column=1, columnspan=3, sticky="nsew")
+        self.sectorlist_frame = SingleRunReviewTabFrameSectorListFrame(self.pane2)
+        #self.sectorlist_frame = ttk.Label(self.pane2, text="Sector List")
+        self.sectorlist_frame.grid(row=0, column=1, sticky="nsew")
 
          # Frame to see jump list (with short summary) and select one
-        self.jumplist_frame = SingleRunReviewTabFrameJumpListFrame(parent)
-        #self.jumplist_frame = ttk.Label(parent, text="Jump List")
-        self.jumplist_frame.grid(row=1, column=1, sticky="nsew")
-
-         # Frame to see jump list (with short summary) and select one
-        self.ownship_frame = SingleRunReviewTabFrameOwnShipFrame(parent)
-        #self.ownship_frame = ttk.Label(parent, text="Own Ship Info")
+        self.ownship_frame = SingleRunReviewTabFrameOwnShipFrame(self.pane3)
+        #self.ownship_frame = ttk.Label(self.pane3, text="Own Ship Info")
         self.ownship_frame.grid(row=1, column=2, sticky="nsew")
 
          # Frame to see jump list (with short summary) and select one
-        self.enemyship_frame = SingleRunReviewTabFrameEnemyShipFrame(parent)
-        #self.enemyship_frame = ttk.Label(parent, text="Enemy Ship Info")
+        self.enemyship_frame = SingleRunReviewTabFrameEnemyShipFrame(self.pane3)
+        #self.enemyship_frame = ttk.Label(self.pane3, text="Enemy Ship Info")
         self.enemyship_frame.grid(row=1, column=3, sticky="nsew")
 
+        self.pane1.add(self.runfilter_frame, weight=1)
+        self.pane1.add(self.jumplist_frame, weight=1)
+        self.pane1.add(self.pane2, weight=1)
+        self.pane2.add(self.sectorlist_frame, weight=1)
+        self.pane2.add(self.pane3, weight=3)
+        self.pane3.add(self.ownship_frame, weight=1)
+        self.pane3.add(self.enemyship_frame, weight=1)
 
+
+        self.pane1["style"] = "grey.TFrame"
+        self.pane2["style"] = "grey.TFrame"
+        self.pane3["style"] = "grey.TFrame"
 
     def get(self):
         checked_checkboxes = []
@@ -449,48 +526,95 @@ class App(tk.Tk):
 
 
         # Configure window
-        self.title(app_title)
-        self.geometry(f"{1280}x{720}")
-        self.tk.call('source', '/home/jonas/Applications/FTL/tkBreeze/breeze-dark/breeze-dark.tcl')
-        s = ttk.Style()
-        s.theme_use('breeze-dark')
+
+        # Hide root window. The main window will be a child of the root window. 
+        self.withdraw()
+
+        # Create main window
+        self.main = tk.Toplevel(self)
+
+        self.main.title(app_title)
+        self.main.geometry(f"{1280}x{720}")
+        self.main.tk.call('source', '/home/jonas/Applications/FTL/tkBreeze/breeze-dark/breeze-dark.tcl')
+        #s = ttk.Style()
+        #s.theme_use('breeze-dark')
+        sv_ttk.set_theme("dark")
 
         # Configure grid layout (4x4)
-        self.columnconfigure(0, weight=1)
-        self.rowconfigure(0, weight=0)
-        self.rowconfigure(1, weight=1)
+        self.main.columnconfigure(0, weight=1)
+        self.main.rowconfigure(0, weight=0)
+        self.main.rowconfigure(1, weight=1)
 
 
         # Create the top menu bar
-        self.topbar_frame = TopBarFrame(self)
-        self.topbar_frame.grid(row=0, column=0, sticky="new")
-        self.topbar_frame.rowconfigure(0, weight=0)
+        self.main.topbar_frame = TopBarFrame(self.main)
+        self.main.topbar_frame.grid(row=0, column=0, sticky="new")
+        self.main.topbar_frame.rowconfigure(0, weight=0)
 
-        self.tabview = ttk.Notebook(self)
-        self.tabview.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
-        self.tabview.columnconfigure(0, weight=1)
+        self.main.tabview = ttk.Notebook(self.main)
+        self.main.tabview.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+        self.main.tabview.columnconfigure((0), weight=1)
+        self.main.tabview.rowconfigure((0), weight=1)
 
-        self.stats_tab_frame_frame = ttk.Frame()
-        self.single_run_tab_frame_frame = ttk.Frame()
-        self.current_save_tab_frame_frame = ttk.Frame()
+        self.main.stats_tab_frame_frame = ttk.Frame(self.main.tabview)
+        self.main.single_run_tab_frame_frame = ttk.Frame(self.main.tabview)
+        self.main.current_save_tab_frame_frame = ttk.Frame(self.main.tabview)
 
-        self.tabview.add(self.stats_tab_frame_frame, text=lbl_tab_statistics)
-        self.tabview.add(self.single_run_tab_frame_frame, text=lbl_tab_run_review)
-        self.tabview.add(self.current_save_tab_frame_frame, text=lbl_tab_current_save)
+        self.main.tabview.add(self.main.stats_tab_frame_frame, text=lbl_tab_statistics)
+        self.main.tabview.add(self.main.single_run_tab_frame_frame, text=lbl_tab_run_review)
+        self.main.tabview.add(self.main.current_save_tab_frame_frame, text=lbl_tab_current_save)
 
         # Fill the tabs with the respective frames
-        self.stats_tab_frame = GlobalStatisticsTabFrame(self.stats_tab_frame_frame)
-        self.single_run_tab_frame = SingleRunReviewTabFrame(self.single_run_tab_frame_frame)
-        self.current_save_tab_frame = CurrentSaveTabFrame(self.current_save_tab_frame_frame)
+        self.main.stats_tab_frame = GlobalStatisticsTabFrame(self.main.stats_tab_frame_frame)
+        self.main.single_run_tab_frame = SingleRunReviewTabFrame(self.main.single_run_tab_frame_frame)
+        self.main.current_save_tab_frame = CurrentSaveTabFrame(self.main.current_save_tab_frame_frame)
 
 
+
+
+
+
+
+
+
+
+        self.style = ttk.Style()
+        self.style.configure("blue.TFrame", background="blue")
+        self.main.single_run_tab_frame_frame["style"] = "blue.TFrame"
+        # self.current_save_tab_frame["style"] = "red.TFrame"
+
+        self.main.tabview.select(1)
+
+        self.parsing_active_event = mp.Event()
+        self.shutdown_parsing_event = mp.Event()
+        self.p = mp.Process(target=saveparsing.initialize_saveparsing, args=(self.parsing_active_event,self.shutdown_parsing_event))
+        self.p.start()
+
+        if parsing_active:
+            self.parsing_active_event.set()
+        
+        # When the close button on the main window is pressed, trigger the closing logic
+        self.main.protocol("WM_DELETE_WINDOW", lambda: self.closewindow(self.main))
 
 
         # --- EVENTS ---
 
+    # Closes the main window, stops the save tracker and stops the application.
+    def closewindow(self, window):
+        window.destroy()
+        #print("DEBUG: Pressed main application close button.")
+        self.shutdown_parsing_event.set()
+        self.p.join(25)
+        self.destroy()
 
 
 
-if __name__ == "__main__":
+    
+
+
+
+
+if __name__ == '__main__':
     app = App()
     app.mainloop()
+
