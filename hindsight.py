@@ -66,15 +66,7 @@ lbl_header_ownship_info = "Own Ship"
 lbl_header_enemyship_info = "Enemy Ship"
 
 
-# Read config file
-config = ConfigParser()
-config.read("config.ini")
 
-# default_tab: This is the default tab that opens when opening the app.
-default_tab = int(config["SETTINGS"]["default_tab"])
-
-# default_spoiler_level: This is the default spoiler level when opening the app.
-default_spoiler_level = int(config["SETTINGS"]["default_spoiler_level"])
 
 # ---- TopBarFrame ----
 
@@ -503,21 +495,31 @@ class App(tk.Tk):
 
         config = ConfigParser()
         config.read("config.ini")
-        self.target_path = config["DEFAULT"]["target_path"]
-        self.saves_db_path = config["DEFAULT"]["saves_db_path"]
-        self.saves_new_path = config["DEFAULT"]["saves_new_path"]
 
-        #Todo Remove cleanly
-        self.target_path_mv = ""
+         # target_path: this has to be the location where FTL stores the continue.sav.
+        self.target_path = config["PATHS"]["target_path"]
 
-        # ToDo: move this to settings.
-        self.update_frequency = config["DEFAULT"]["update_frequency"]
+        # save_files_backup_path: this should point to the saves folder.
+        self.save_files_backup_path = config["PATHS"]["save_files_backup_path"]
+
+        # db_path: this should point to the current folder, it points to the folder with the database file.
+        self.db_path = config["PATHS"]["db_path"]
+
+        # update_frequency: this is the intervall for checking new continue.sav files, the default is 2000.
+        self.update_frequency = int(config["SETTINGS"]["update_frequency"])
+
+        # default_tab: This is the default tab that opens when opening the app.
+        self.default_tab = int(config["SETTINGS"]["default_tab"])
+
+        # default_spoiler_level: This is the default spoiler level when opening the app.
+        self.default_spoiler_level = int(config["SETTINGS"]["default_spoiler_level"])
 
 
-        if not os.path.exists(self.saves_db_path):
-            os.makedirs(self.saves_db_path)
-        if not os.path.exists(self.saves_new_path):
-            os.makedirs(self.saves_new_path)
+
+        if not os.path.exists(self.save_files_backup_path):
+            os.makedirs(self.save_files_backup_path)
+        if not os.path.exists(self.db_path):
+            os.makedirs(self.db_path)
 
         if self.update_frequency is None:
             self.update_frequency = 2000
@@ -525,7 +527,7 @@ class App(tk.Tk):
         self.tracking = False
 
         self.filename_suffix = ".sav"
-        self.savegame = sg.Savegame(self.target_path, self.target_path_mv)
+        self.savegame = sg.Savegame(self.target_path)
 
 
 
@@ -591,7 +593,7 @@ class App(tk.Tk):
         self.main.single_run_tab_frame_frame["style"] = "blue.TFrame"
         # self.current_save_tab_frame["style"] = "red.TFrame"
 
-        self.main.tabview.select(default_tab)
+        self.main.tabview.select(self.default_tab)
 
         self.parsing_active_event = mp.Event()
         self.shutdown_parsing_event = mp.Event()
