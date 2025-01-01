@@ -23,7 +23,7 @@ Do a deep dive into specific runs, showing you sector and jump details as well a
 - Jump details showing event / store information when available.
 
 # Background
-A few months ago, after watching some advanced tutorials on FTL (special thank you to Crow for all the amazing videos), I decided to improve my level and I started playing on hard after years playing normal difficulty. While micromanagement mistakes give immediate feedback, I struggle to perceive slight strategic mistakes where the consequences can only be felt many jumps later. For that I wanted to be able to review my decision-making after the run was over. My understanding is that the current best way of doing so is recording full videos of every run and then looking at the video. This is not something I was interested in,
+A few months ago, after watching some advanced tutorials on FTL (special thank you to Crow for all the amazing videos), I decided to improve my level and started playing on hard after years playing normal difficulty. While micromanagement mistakes give immediate feedback, I struggle to perceive slight strategic mistakes where the consequences can only be felt many jumps later. For that I wanted to be able to review my decision-making after the run was over. My understanding is that the current best way of doing so is recording full videos of every run and then looking at the video. This is not something I was interested in,
 so I decided to try to build a tool that helps with that, using the excellent FTL Savegame Manager as base.
 
 And because I have to collect detailed run data anyway, I want to replace manually tracking global run stats in a table with this tool.
@@ -36,7 +36,7 @@ I only tested this program for the Steam Version 1.6.13 running Linux. If you're
 The code should work on other platforms.
 
 ## In-Game Error Messages
-Also note that there is a very small chance that FTL will try to access the current save file at the same time as this program. If that happens there will be an message in FTL saying that it was unable to save. This is unproblematic, FTL will save your progress again on the next beacon.
+There is a very small chance that FTL will try to access the current save file at the same time as this program. If that happens there will be an message in FTL saying that it was unable to save. This is unproblematic, FTL will save your progress again on the next beacon.
 
 ## Code Quality
 I am not a programmer and this is my first time writing Python. As such, code quality will certainly be very low (in ways I do not understand). Apologies in advance to anyone reading the code. If you have advice / improvement ideas, please let me know.
@@ -47,4 +47,4 @@ A lot of the code structure is inherited from ejms116's [FTL Savegame Manager](h
 
 The code that reads the continue.sav file is based on [Vhati's profile editor](https://github.com/Vhati/ftl-profile-editor) and the [python implementation by whiskeythecat](https://github.com/whiskeythecat/ftl_twitch).
 
-The idea for the tool stems from Crow's excellent points on players tendency to focus on short-term RNG and micromanagement mistakes, instead of looking at the overall decision-making that made them weaker against that specific RNG.
+The idea for the tool stems from Crow Revell's excellent points on the tendency to focus on short-term RNG and micromanagement mistakes, instead of looking at the overall decision-making that made the ship weaker in the first place.
