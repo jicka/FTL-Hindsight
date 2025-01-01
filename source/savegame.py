@@ -2,9 +2,8 @@ from source import parser as p
 from source import run as r
 
 class Savegame:
-    def __init__(self, filepath, filepath_mv):
+    def __init__(self, filepath):
         self.filepath = filepath
-        self.filepath_mv = filepath_mv
         self.parser = p.Parser()
         self.run = r.Run()
         self.mv = False
@@ -13,10 +12,7 @@ class Savegame:
         self.run.__init__()
 
     def parse(self):
-        if self.mv:
-            self.run.update(self.parser.parse_mv(self.filepath_mv))
-        else:
-            self.run.update(self.parser.parse_ftl(self.filepath))
+        self.run.update(self.parser.parse_ftl(self.filepath))
 
     def parse_all(self):
         #fin = open(self.filepath, "rb")

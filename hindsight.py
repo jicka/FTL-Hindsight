@@ -66,7 +66,15 @@ lbl_header_ownship_info = "Own Ship"
 lbl_header_enemyship_info = "Enemy Ship"
 
 
+# Read config file
+config = ConfigParser()
+config.read("config.ini")
 
+# default_tab: This is the default tab that opens when opening the app.
+default_tab = int(config["SETTINGS"]["default_tab"])
+
+# default_spoiler_level: This is the default spoiler level when opening the app.
+default_spoiler_level = int(config["SETTINGS"]["default_spoiler_level"])
 
 # ---- TopBarFrame ----
 
@@ -583,7 +591,7 @@ class App(tk.Tk):
         self.main.single_run_tab_frame_frame["style"] = "blue.TFrame"
         # self.current_save_tab_frame["style"] = "red.TFrame"
 
-        self.main.tabview.select(1)
+        self.main.tabview.select(default_tab)
 
         self.parsing_active_event = mp.Event()
         self.shutdown_parsing_event = mp.Event()

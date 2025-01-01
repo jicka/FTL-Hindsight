@@ -2,6 +2,8 @@
 standalone/
 data/current/
 data/saves/
+config.ini
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -10,29 +10,40 @@ import copy
 import numpy as np
 from pprint import pprint
 import time
+import sqlite3
 
 
 # compile with pyinstaller.exe --onefile --windowed  ftl_savegame_manager.py
 
 
 def initialize_saveparsing(parsing_active_event,shutdown_parsing_event):
+    
+    # Read config file
     config = ConfigParser()
     config.read("config.ini")
-    target_path = config["DEFAULT"]["target_path"]
-    saves_db_path = config["DEFAULT"]["saves_db_path"]
-    saves_new_path = config["DEFAULT"]["saves_new_path"]
 
-    #Todo Remove cleanly
-    target_path_mv = ""
+    # target_path: this has to be the location where FTL stores the continue.sav.
+    target_path = config["PATHS"]["target_path"]
 
-    # ToDo: move this to settings.
-    update_frequency = config["DEFAULT"]["update_frequency"]
+    # save_files_backup_path: this should point to the saves folder.
+    save_files_backup_path = config["PATHS"]["save_files_backup_path"]
 
+    # db_path: this should point to the current folder, it points to the folder with the database file.
+    db_path = config["PATHS"]["db_path"]
 
-    if not os.path.exists(saves_db_path):
-        os.makedirs(saves_db_path)
-    if not os.path.exists(saves_new_path):
-        os.makedirs(saves_new_path)
+    # update_frequency: this is the intervall for checking new continue.sav files, the default is 2000.
+    update_frequency = int(config["SETTINGS"]["update_frequency"])
+
+    # auto_tracking: if set to true, starts parsing save files directly on launch.
+    auto_tracking = bool(config["SETTINGS"]["auto_tracking"])
+
+    # Todo Remove cleanly
+    #target_path_mv = ""
+
+    if not os.path.exists(save_files_backup_path):
+        os.makedirs(save_files_backup_path)
+    if not os.path.exists(db_path):
+        os.makedirs(db_path)
 
     if update_frequency is None:
         update_frequency = 2
@@ -40,7 +51,7 @@ def initialize_saveparsing(parsing_active_event,shutdown_parsing_event):
     tracking = False
 
     filename_suffix = ".sav"
-    savegame = sg.Savegame(target_path, target_path_mv)
+    savegame = sg.Savegame(target_path)
 
     # initialize
     runs = []
@@ -73,7 +84,7 @@ def initialize_saveparsing(parsing_active_event,shutdown_parsing_event):
 
 def track_file():
     if tracking:
-        if os.path.exists(target_path) and not savegame.mv or os.path.exists(target_path_mv) and savegame.mv:
+        if os.path.exists(target_path):
             try:
                 savegame.parse()
                 date_time_obj = datetime.now()
@@ -81,7 +92,7 @@ def track_file():
                 # check if new ship is played
                 if savegame.run.total_beacons_explored < beacons or savegame.run.ship_name != ship_name:
                     foldername = "%s-%s" % (timestamp_str, savegame.run.ship_name)
-                    folder_path = os.path.join(saves_new_path, foldername)
+                    folder_path = os.path.join(db_path, foldername)
                     if not os.path.exists(folder_path):
                         os.makedirs(folder_path)
                         update_statusbar("folder created")
@@ -97,10 +108,7 @@ def track_file():
                     str(beacons), savegame.run.sector, savegame.run.ship_name, timestamp_str)
                     new_path = os.path.join(folder_path, filename + filename_suffix)
                     latest_filepath = new_path
-                    if savegame.mv:
-                        shutil.copy(target_path_mv, new_path)
-                    else:
-                        shutil.copy(target_path, new_path)
+                    shutil.copy(target_path, new_path)
                     update_statusbar(filename + " copied")
                     update_run_detail()
                     update_run_overview()
